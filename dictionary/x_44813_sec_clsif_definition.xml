@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<database>
+    <element attributes="update_synch=true" extends="sys_metadata" label="Security Classification" max_length="40" name="x_44813_sec_clsif_definition" type="collection">
+        <element default="true" label="Active" max_length="40" name="active" type="boolean"/>
+        <element display="true" label="Name" mandatory="true" max_length="12" name="name" type="string"/>
+        <element label="Order" max_length="40" name="order" type="integer"/>
+        <element label="Portion Marking" max_length="2" name="portion_marking" type="string"/>
+        <index name="index">
+            <element name="name"/>
+        </index>
+        <index name="index2">
+            <element name="portion_marking"/>
+        </index>
+    </element>
+</database>

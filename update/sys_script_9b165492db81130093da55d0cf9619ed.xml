@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update sys_domain="global" table="sys_script">
+    <sys_script action="INSERT_OR_UPDATE">
+        <abort_action>false</abort_action>
+        <access>package_private</access>
+        <action_delete>false</action_delete>
+        <action_insert>true</action_insert>
+        <action_query>false</action_query>
+        <action_update>true</action_update>
+        <active>true</active>
+        <add_message>false</add_message>
+        <advanced>true</advanced>
+        <change_fields>false</change_fields>
+        <client_callable>false</client_callable>
+        <collection>x_44813_sec_clsif_definition</collection>
+        <condition/>
+        <description/>
+        <execute_function>false</execute_function>
+        <filter_condition table="x_44813_sec_clsif_definition">sys_nameVALCHANGES^ORportion_markingVALCHANGES^EQ<item endquery="false" field="sys_name" goto="false" newquery="false" operator="VALCHANGES" or="false" value=""/>
+            <item endquery="false" field="portion_marking" goto="false" newquery="false" operator="VALCHANGES" or="true" value=""/>
+            <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
+        </filter_condition>
+        <is_rest>false</is_rest>
+        <message/>
+        <name>Validate Classification Strings</name>
+        <order>100</order>
+        <priority>100</priority>
+        <rest_method/>
+        <rest_method_text/>
+        <rest_service/>
+        <rest_service_text/>
+        <rest_variables/>
+        <role_conditions/>
+        <script><![CDATA[(function executeRule(current, previous /*null when async*/) {
+	var validator = new ClassificationValidator();
+	validator.set((current.name.nil()) ? "" : current.name.toString(), (current.portion_marking.nil()) ? "" : current.portion_marking.toString());
+	if (validator.infoMessages.length > 0)
+		validator.infoMessages.forEach(function(m) { gs.addInfoMessage(m); });
+	if (validator.errorMessages.length > 0)
+		validator.errorMessages.forEach(function(m) { gs.addErrorMessage(m); });
+	if (!validator.isValid)
+		current.setAbortAction(true);
+})(current, previous);]]></script>
+        <sys_class_name>sys_script</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-03-26 16:52:15</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>9b165492db81130093da55d0cf9619ed</sys_id>
+        <sys_mod_count>9</sys_mod_count>
+        <sys_name>Validate Classification Strings</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Security Classification" source="x_44813_sec_clsif">af37049adb41130093da55d0cf9619ef</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Security Classification">af37049adb41130093da55d0cf9619ef</sys_scope>
+        <sys_update_name>sys_script_9b165492db81130093da55d0cf9619ed</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-03-28 16:52:47</sys_updated_on>
+        <template/>
+        <when>before</when>
+    </sys_script>
+    <sys_translated_text action="delete_multiple" query="documentkey=9b165492db81130093da55d0cf9619ed"/>
+</record_update>

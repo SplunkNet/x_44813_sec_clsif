@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="x_44813_sec_clsif_definition">
+    <x_44813_sec_clsif_definition action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <name>RESTRICTED</name>
+        <order>300</order>
+        <portion_marking>R</portion_marking>
+        <sys_class_name>x_44813_sec_clsif_definition</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-03-26 23:13:35</sys_created_on>
+        <sys_id>6bbde112db45130093da55d0cf96195d</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>RESTRICTED</sys_name>
+        <sys_package display_value="Security Classification" source="x_44813_sec_clsif">af37049adb41130093da55d0cf9619ef</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Security Classification">af37049adb41130093da55d0cf9619ef</sys_scope>
+        <sys_update_name>x_44813_sec_clsif_definition_6bbde112db45130093da55d0cf96195d</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-03-26 23:13:35</sys_updated_on>
+    </x_44813_sec_clsif_definition>
+</record_update>

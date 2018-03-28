@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_44813_sec_clsif.ClassificationUtil</api_name>
+        <client_callable>false</client_callable>
+        <description>Utilities for security classification</description>
+        <name>ClassificationUtil</name>
+        <script><![CDATA[var ClassificationUtil = Class.create();
+(function(ClassificationUtil) {
+    var $t = new x_44813_util.types();
+	
+	ClassificationUtil.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+		getDefaultPortionMarking: function() {
+			if (typeof(ClassificationUtil.__defaultPortionMarking) != "string") {
+				var s = gs.getProperty('x_44813_sec_clsif.default_classification', '').trim();
+				if (s.length == 0) {
+					ClassificationUtil.__defaultPortionMarking = ClassificationValidator.compliantClassifications[0].portionMarking;
+					gs.setProperty('x_44813_sec_clsif.default_classification', gr.getValue(ClassificationUtil.__defaultPortionMarking));
+				} else
+					ClassificationUtil.__defaultPortionMarking = s;
+			}
+			return ClassificationUtil.__defaultPortionMarking;
+		},
+
+		getDefaultClassificationName: function() {
+			if (typeof(ClassificationUtil.__defaultClassificationName) != "string")
+				ClassificationUtil.__defaultClassificationName = ClassificationValidator.defaultByPortionMarking[this.getDefaultPortionMarking()];
+			return ClassificationUtil.__defaultClassificationName;
+		},
+
+		getDefaultClassification: function() {
+			return this.getClassificationCache().byPortionMarking[this.getDefaultPortionMarking()];
+		},
+
+		setDefaultClassification: function(portion_marking) {
+			if ($t.isNil(portion_marking))
+				throw new Error("Portion marking not provided.");
+				portion_marking = $t.asString(portion_marking).trim().toUpperCase();
+			if (portion_marking.length == 0)
+				throw new Error("Portion Marking cannot be empty.");
+			if (typeof(ClassificationValidator.defaultByPortionMarking[portion_marking]) != "string")
+				throw new Error("Default portion marking must be for a known compliant classification.");
+			ClassificationUtil.__defaultClassificationName = ClassificationValidator.defaultByPortionMarking[portion_marking];
+			if (ClassificationUtil.__defaultPortionMarking === portion_marking)
+				return;
+			ClassificationUtil.__defaultPortionMarking = portion_marking;
+			gs.setProperty('x_44813_sec_clsif.default_classification', gr.getValue(portion_marking));
+		},
+		
+		getTaskColumnStatus: function() {
+			var colGr = new GlideRecord('sys_dictionary');
+			colGr.addQuery('name', 'task');
+			colGr.addQuery('element', 'security_classification');
+			colGr.query();
+			if (!colGr.next())
+				return { columnExists: false, hasConflict: false, conflictMessage: "" };
+			var typeGr = new GlideRecord('sys_glide_object');
+			typeGr.addQuery('sys_id', colGr.internal_type);
+			typeGr.query();
+			if (!typeGr.next())
+				return { columnExists: true, hasConflict: true, conflictMessage: "Unable to determine type for the 'security_classification' column on the 'task' table." };
+			if (typeGr.name.toString() != 'reference')
+				return { columnExists: true, hasConflict: true, conflictMessage: "The 'security_classification' column on the 'task' table already exists and is not a reference type." };
+			if (colGr.reference.nil())
+				return { columnExists: true, hasConflict: false, conflictMessage: "The 'security_classification' column on the 'task' table already exists, but does not refer to a table." };
+			var ref = colGr.getValue('reference');
+			return { columnExists: true, hasConflict: false, conflictMessage: typeof(ref) + " " + JSON.stringify(ref) };
+		},
+		
+		getAllClassifications: function(force) {
+			return this.getClassificationCache(force).ordered;
+		},
+
+		getClassificationCache: function(force) {
+			if (typeof(ClassificationUtil.__classificationCache) == "undefined")
+				ClassificationUtil.__classificationCache = { byPortionMarking: { } };
+			else if (!force)
+				return ClassificationUtil.__loadedCompliantClassifications;
+			var allClassifications = [];
+			var gr = ClassificationUtil.createGlideRecord();
+			gr.query();
+			while (gr.next()) {
+				var obj = ClassificationUtil.glideRecordToJSON(gr);
+				ClassificationUtil.__classificationCache.byPortionMarking[obj.portion_marking] = obj;
+				allClassifications.push(obj);
+			}
+			ClassificationValidator.compliantClassifications.filter(function(a) { return typeof(ClassificationUtil.__classificationCache.byPortionMarking[a.portion_marking]) == "undefined"; }).forEach(function(a, i) {
+				gr = ClassificationUtil.createGlideRecord();
+				gr.newRecord();
+				gr.setValue('name', a.name);
+				gr.setValue('portion_marking', a.portion_marking);
+				gr.setValue('order', (i + 1) * 100);
+				gr.setValue('active', true);
+				gr.update();
+				allClassifications.push(ClassificationValidator.glideRecordToJSON(gr));
+			});
+			ClassificationUtil.__loadedCompliantClassifications.ordered = allClassifications.map(function(a, i) {
+				return {
+					value: a,
+					isNew: (typeof(ClassificationUtil.__classificationCache.byPortionMarking[a.portion_marking]) == "undefined"),
+					original_order: i
+				};
+			}).sort(function(a, b) {
+				if (a.isNew) {
+					if (b.isNew)
+						return a.original_order - b.original_order;
+					return -1;
+				}
+				if (b.isNew)
+					return 1;
+				
+				if (typeof(a.value.order) == "number") {
+					if (typeof(b.value.order) == "number")
+						return a.value.order - b.value.order;
+					return -1;
+				}
+				if (typeof(b.value.order) == "number")
+					return 1;
+				return a.original_order - b.original_order;
+			}).map(function(a, i) {
+				var expected = (i + 1) * 100;
+				if (a.value.order !== expected) {
+					gr = ClassificationUtil.createGlideRecord();
+					gr.get(a.sys_id);
+					gr.setValue('order', expected);
+					gr.update();
+					a.value.order = expected;
+				}
+				ClassificationUtil.__loadedCompliantClassifications.byPortionMarking[a.portion_marking] = a;
+				return a.value;
+			});
+			return ClassificationUtil.__loadedCompliantClassifications;
+		},
+		
+		type: 'ClassificationUtil'
+	});
+	ClassificationUtil.tableName = 'x_44813_sec_clsif_definition';
+	ClassificationUtil.createGlideRecord = function() { return new GlideRecord(ClassificationUtil.tableName); };
+	ClassificationUtil.glideRecordToJSON = function(gr, limit) {
+		if (gs.nil(gr) || typeof(gr) != "object" || typeof(gr.isValidRecord) != "function")
+			throw new Error("Parameter must be a GlideRecord object");
+		if (!gr.isValidRecord())
+			return [ ];
+		return [{
+			name: ClassificationValidator.asString(gr.name, ""),
+			portion_marking: ClassificationValidator.asString(gr.portion_marking, ""),
+			order: $t.asNumber(order, null),
+			active: $t.asBoolean(gr.order, null)
+		}];
+	};
+})(ClassificationUtil);]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-03-26 19:31:29</sys_created_on>
+        <sys_id>451b689edb81130093da55d0cf96193e</sys_id>
+        <sys_mod_count>20</sys_mod_count>
+        <sys_name>ClassificationUtil</sys_name>
+        <sys_package display_value="Security Classification" source="x_44813_sec_clsif">af37049adb41130093da55d0cf9619ef</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="Security Classification">af37049adb41130093da55d0cf9619ef</sys_scope>
+        <sys_update_name>sys_script_include_451b689edb81130093da55d0cf96193e</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-03-28 17:50:54</sys_updated_on>
+    </sys_script_include>
+</record_update>

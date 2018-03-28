@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<record_update sys_domain="global" table="sys_script_client">
+    <sys_script_client action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <applies_extended>false</applies_extended>
+        <condition/>
+        <description>Ensures portion marking string is valid - First character must a letter and optional second character can only be a letter, digit, underscore or period. If it is valid, any leading or trailing whitespace will be removed and lower-case letters will be converted to upper case.</description>
+        <field>portion_marking</field>
+        <global>true</global>
+        <messages/>
+        <name>Validate Portion Marking</name>
+        <order/>
+        <script><![CDATA[function onChange(control, oldValue, newValue, isLoading, isTemplate) {
+	if (isLoading || newValue === "")
+		return;
+	
+	g_form.hideAllFieldMsgs('portion_marking');
+	var validation = new x_44813_sec_clsif.ClassificationValidator.PortionMarking(newValue);
+	if (!validation.isValid)
+		g_form.showFieldMsg('portion_marking', validation.message, 'error');
+	else if (validation.message.length > 0) {
+		g_form.setValue('portion_marking', validation.normalizedText);
+		g_form.showFieldMsg('portion_marking', validation.message, 'info');
+	}
+}]]></script>
+        <sys_class_name>sys_script_client</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2018-03-26 16:48:56</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>b9d39052db81130093da55d0cf9619e2</sys_id>
+        <sys_mod_count>4</sys_mod_count>
+        <sys_name>Validate Portion Marking</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="Security Classification" source="x_44813_sec_clsif">af37049adb41130093da55d0cf9619ef</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="Security Classification">af37049adb41130093da55d0cf9619ef</sys_scope>
+        <sys_update_name>sys_script_client_b9d39052db81130093da55d0cf9619e2</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2018-03-27 20:01:45</sys_updated_on>
+        <table>x_44813_sec_clsif_definition</table>
+        <type>onChange</type>
+        <ui_type>10</ui_type>
+        <view/>
+    </sys_script_client>
+</record_update>
