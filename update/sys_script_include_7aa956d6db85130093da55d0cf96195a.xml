@@ -9,197 +9,250 @@
         <name>ClassificationValidator</name>
         <script><![CDATA[var ClassificationValidator = Class.create();
 (function(ClassificationValidator) {
-    var $t = new x_44813_util.types();
-    
-    function ValidationProperty(config) {
-        this.__config = config;
-        this.__setLastValidatedString = "";
-		this.sourceValue = "";
-		this.normalizedValue = "";
-		this.isValid = false;
-        this.message = this.__config.emptyValueMsg;
-        this.isChanged = function() { return __setLastValidatedString != this.sourceValue || typeof(this.isValid) != "boolean" || typeof(this.normalizedValue) != "string" ||
-            typeof(this.message) != "string"; };
-		this.toString = function() { return this.sourceValue; };
-		this.validate = function(force) {
-			this.sourceValue = $t.asString(this.sourceValue, "");
-            this.__setLastValidatedString = this.sourceValue;
-			if (!(force || this.isChanged()))
-                return this.isValid;
-            this.normalizedValue = this.sourceValue.trim();
-			if (this.normalizedValue.length == 0) {
-				this.isValid = false;
-				this.message = this.__config.emptyValueMsg;
-			} else {
-				this.normalizedValue = $t.asNormalizedString(this.normalizedValue);
-				this.isValid = this.__config.re.test(this.normalizedValue);
-				if (this.isValid) {
-					if (this.normalizedValue.length > this.__config.maxLen) {
-						this.isValid = false;
-						this.message = this.__config.valueTooLongMsg;
-					} else
-						this.message = (this.sourceValue == this.normalizedValue) ? "" : this.__config.valueNormalizedMsg;
-				}
-				else
-					this.message = this.__config.invalidValueMsg;
+    var ValidationProperty = Class.create();
+    (function (ValidationProperty) {
+        vpProto = {
+            initialize: function(config, onRevalidate) {
+                this._types = new x_44813_util.types();
+                this._isValid = false;
+                this._sourceValue = "";
+                this._normalizedValue = "";
+                this._message = "";
+                this._onRevalidate = onRevalidate;
+                this._config = config;
+                this.validate();
             }
-            return this.isValid;
-		};
-    }
-    function NameValidationProperty() {
-        ValidationProperty.call(this, {
-            re: /^[a-z][a-z\d_]*(\s+[a-z][a-z\d_]*)*$/i,
-            maxLen: 12,
-            valueNormalizedMsg: "Classification Name has been normalized.",
-            emptyValueMsg: NameValidationProperty.emptyValueMsg,
-            valueTooLongMsg: "Name cannot be greater than 12 characters.",
-            invalidValueMsg: "Invalid Classification Name."
+        };
+        Object.defineProperty(vpProto, "isValid", {
+            get: function () { return this._isValid; },
+            enumerable: true,
+            configurable: true
         });
-    }
-    NameValidationProperty.prototype = ValidationProperty;
-    NameValidationProperty.prototype.constructor = NameValidationProperty;
-    NameValidationProperty.emptyValueMsg = "Classification Name cannot be empty.";
-    function PortionMarkingValidationProperty() {
-        ValidationProperty.call(this, {
-            re: /^[a-z][a-z\d_.]?/i,
-            maxLen: 2,
-            valueNormalizedMsg: "Portion Marking has been normalized.",
-            emptyValueMsg: PortionMarkingValidationProperty.emptyValueMsg,
-            valueTooLongMsg: "Portion Marking can only be 1 or 2 characters.",
-            invalidValueMsg: "Invalid Portion Marking."
+        Object.defineProperty(vpProto, "normalizedValue", {
+            get: function () { return this._normalizedValue; },
+            enumerable: true,
+            configurable: true
         });
-    }
-    PortionMarkingValidationProperty.prototype = ValidationProperty;
-    PortionMarkingValidationProperty.prototype.constructor = PortionMarkingValidationProperty;
-    PortionMarkingValidationProperty.emptyValueMsg = "Portion Marking cannot be empty.";
-    function asNameValidator(value) {
-        if (!$t.isNil(value) && value instanceof NameValidationProperty)
-            return value;
-        var result = new NameValidationProperty();
-        result.sourceValue = value;
-        result.validate();
-        return result;
-    }
-    function asPortionMarkingValidator(value){
-        if (!$t.isNil(value) && value instanceof PortionMarkingValidationProperty)
-            return value;
-        var result = new PortionMarkingValidationProperty();
-        result.sourceValue = value;
-        result.validate();
-        return result;
-    }
-	
-	ClassificationValidator.prototype = {
-		initialize: function() {
-			this.name = new NameValidationProperty();
-			this.portionMarking = new PortionMarkingValidationProperty();
-			this.errorMessages = [ NameValidationProperty.emptyValueMsg, PortionMarkingValidationProperty.emptyValueMsg ];
-			this.errorMessages = [];
-			this.infoMessages = [];
-			this.isValid = false;
-		},
-        isChanged: function() { return $t.isNil(this.name) || $t.isNil(this.portionMarking) ||
-            !(this.name instanceof NameValidationProperty && this.portionMarking instanceof PortionMarkingValidationProperty) ||
-            this.name.isChanged() || this.portionMarking.isChanged() || typeof(this.isValid) != "boolean"; },
-		validate: function(force) {
-			if (!(force || this.isChanged()))
-                return this.isValid;
-            this.name = asNameValidator(this.name);
-            this.portionMarking = asPortionMarkingValidator(this.portionMarking);
-            this.errorMessages = [];
-            this.infoMessages = [];
-            if (this.name.validate(force)) {
-                this.isValid = this.portionMarking.validate(force);
-                if (this.name.message.length > 0)
-                    this.infoMessages.push(this.name.message);
-                if (!this.isValid)
-                    this.errorMessages.push(this.portionMarking.message);
-                else if (this.portionMarking.message.length > 0)
-                    this.infoMessages.push(this.portionMarking.message);
-                return this.isValid;
+        Object.defineProperty(vpProto, "message", {
+            get: function () { return this._message; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(vpProto, "sourceValue", {
+            get: function () { return this._sourceValue; },
+            set: function (value) {
+                var s = this._types.asString(value, "");
+                if (s === this._sourceValue)
+                    return;
+                this._sourceValue = s;
+                this.validate();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        vpProto.toString = function () { return this._types.asString(this.sourceValue, ""); };
+        vpProto.validate = function () {
+            this._normalizedValue = this._sourceValue.trim();
+            if (this._normalizedValue.length == 0) {
+                this._isValid = false;
+                this._message = this._config.emptyValueMsg;
+                return false;
             }
-            this.errorMessages.push(this.name.message);
-            if (!this.portionMarking.validate(force))
-                this.errorMessages.push(this.portionMarking.message);
-            else if (this.portionMarking.message.length > 0)
-                this.infoMessages.push(this.portionMarking.message);
-            this.isValid = false;
+            this._normalizedValue = this._types.asNormalizedString(this._normalizedValue);
+            this._isValid = this._config.validationExpression.test(this._normalizedValue);
+            if (this._isValid) {
+                if (this._normalizedValue.length <= this._config.maxLen) {
+                    this._isValid = true;
+                    this._message = (this._sourceValue == this._normalizedValue) ? "" : this._config.valueNormalizedMsg;
+                    return true;
+                }
+                this._message = this._config.valueTooLongMsg;
+            }
+            else
+                this._message = this._config.invalidValueMsg;
+            this._isValid = false;
             return false;
-		},
-		set: function(name, portionMarking) {
-            if (!$t.isNil(name) && name instanceof NameValidationProperty)
-                this.name = name;
-            else {
-                if ($t.isNil(this.name) || !(this.name instanceof NameValidationProperty))
-                this.name = new NameValidationProperty();
-                this.name.sourceValue = name;
+        };
+        vpProto.name = 'ValidationProperty';
+        ValidationProperty.prototype = vpProto;
+        return ValidationProperty;
+    }(ValidationProperty));
+    
+    var NameValidationProperty = Class.create();
+    (function (_super, NameValidationProperty) {
+        var vpProto = Object.extendsObject({
+            initialize: function(onRevalidate) {
+                _super.prototype.initialize.call(this, {
+                    validationExpression: /^[a-z][a-z\d_]*(\s+[a-z][a-z\d_]*)*$/i,
+                    maxLen: 12,
+                    valueNormalizedMsg: "Classification Name has been normalized.",
+                    emptyValueMsg: NameValidationProperty.emptyValueMsg,
+                    valueTooLongMsg: "Name cannot be greater than 12 characters.",
+                    invalidValueMsg: "Invalid Classification Name."
+                }, onRevalidate);
             }
-            if (!$t.isNil(portionMarking) && portionMarking instanceof PortionMarkingValidationProperty)
-                this.portionMarking = portionMarking;
-            else {
-                if ($t.isNil(this.portionMarking) || !(this.portionMarking instanceof PortionMarkingValidationProperty))
-                this.portionMarking = new PortionMarkingValidationProperty();
-                this.portionMarking.sourceValue = portionMarking;
+        }, _super.prototype);
+        vpProto.type = "NameValidationProperty";
+        NameValidationProperty.prototype = vpProto;
+        NameValidationProperty.emptyValueMsg = "Classification Name cannot be empty.";
+        return NameValidationProperty;
+    }(ValidationProperty, NameValidationProperty));
+    
+    var PortionMarkingValidationProperty = Class.create();
+    (function (_super, PortionMarkingValidationProperty) {
+        var vpProto = Object.extendsObject({
+            initialize: function(onRevalidate) {
+                _super.prototype.initialize.call(this, {
+                    validationExpression: /^[a-z][a-z\d_.]?/i,
+                    maxLen: 2,
+                    valueNormalizedMsg: "Portion Marking has been normalized.",
+                    emptyValueMsg: PortionMarkingValidationProperty.emptyValueMsg,
+                    valueTooLongMsg: "Portion Marking can only be 1 or 2 characters.",
+                    invalidValueMsg: "Invalid Portion Marking."
+                }, onRevalidate);
             }
-			return this.validate();
-		},
-		setFromGr: function(gr) { this.set(gr.getValue('name'), gr.getValue('portion_marking')); },
-		applyGrIfValid: function(gr) {
-			if (!this.validate() || (this.name.normalizedValue == gr.getValue('name') && this.portionMarking.normalizedValue == gr.getValue('portion_marking')))
-				return false;
-			
-			gr.setValue('name', this.name.normalizedValue);
-			gr.setValue('portion_marking', this.portionMarking.normalizedValue);
-			return true;
-		},
-		setName: function(name) {
-            if (!$t.isNil(name) && name instanceof NameValidationProperty)
-                this.name = name;
-            else {
-                if ($t.isNil(this.name) || !(this.name instanceof NameValidationProperty))
-                    this.name = new NameValidationProperty();
-                this.name.sourceValue = name;
+        }, _super.prototype);
+        vpProto.type = "PortionMarkingValidationProperty";
+        PortionMarkingValidationProperty.prototype = vpProto;
+        PortionMarkingValidationProperty.emptyValueMsg = "Portion Marking cannot be empty.";
+        return PortionMarkingValidationProperty;
+    }(ValidationProperty, PortionMarkingValidationProperty));
+    
+    (function (ClassificationValidator) {
+        var vpProto = {
+            initialize: function() {
+                this._types = new x_44813_util.types();
+                this._name = new NameValidationProperty(this.onRevalidate);
+                this._portionMarking = new NameValidationProperty(this.onRevalidate);
+                this._errorMessages = [];
+                this._infoMessages = [NameValidationProperty.emptyValueMsg, PortionMarkingValidationProperty.emptyValueMsg];
+                this._isValid = false;
             }
-			return this.name.validate();
-		},
-		setPortionMarking: function(portionMarking) {
-            if (!$t.isNil(portionMarking) && portionMarking instanceof PortionMarkingValidationProperty)
-                this.portionMarking = portionMarking;
-            else {
-                if ($t.isNil(this.portionMarking) || !(this.portionMarking instanceof PortionMarkingValidationProperty))
-                    this.portionMarking = new PortionMarkingValidationProperty();
-                this.portionMarking.sourceValue = portionMarking;
+        };
+        Object.defineProperty(vpProto, "isValid", {
+            get: function () { return this._isValid; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(vpProto, "name", {
+            get: function () { return this._name; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(vpProto, "portionMarking", {
+            get: function () { return this._portionMarking; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(vpProto, "errorMessages", {
+            get: function () { return this._errorMessages; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(vpProto, "infoMessages", {
+            get: function () { return this._infoMessages; },
+            enumerable: true,
+            configurable: true
+        });
+        vpProto.onRevalidate = function () {
+            var errorMessages = [], infoMessages = [];
+            var isValid = false;
+            if (this._name.isValid) {
+                if (this._name.message.length > 0)
+                    infoMessages.push(this._name.message);
+                if (this._portionMarking.isValid) {
+                    if (this._portionMarking.message.length > 0)
+                        infoMessages.push(this._portionMarking.message);
+                    isValid = true;
+                }
+                else
+                    errorMessages.push(this._portionMarking.message);
             }
-			return this.portionMarking.validate();
-		},
-		type: 'ClassificationValidator'
-	};
-	ClassificationValidator.compliantClassifications = [
-		{ name: 'UNCLASSIFIED', portion_marking: 'U' },
-		{ name: 'CONFIDENTIAL', portion_marking: 'C' },
-		{ name: 'RESTRICTED', portion_marking: 'R' },
-		{ name: 'SECRET', portion_marking: 'S' },
-		{ name: 'TOP SECRET', portion_marking: 'TS' }
-	];
-	ClassificationValidator.defaultByName = {};
-	ClassificationValidator.defaultByPortionMarking = {};
-	ClassificationValidator.compliantClassifications.forEach(function(a) {
-		ClassificationValidator.defaultByName[a.name] = a.portion_marking;
-		ClassificationValidator.defaultByPortionMarking[a.portion_marking] = a.name;
-    });
-    ClassificationValidator.$t.asString = $t.asString;
-})(ClassificationValidator);]]></script>
+            else {
+                errorMessages.push(this._name.message);
+                if (this._portionMarking.isValid) {
+                    if (this._portionMarking.message.length > 0)
+                        infoMessages.push(this._portionMarking.message);
+                }
+                else
+                    errorMessages.push(this._portionMarking.message);
+            }
+            var i;
+            if (this._errorMessages.length > errorMessages.length) {
+                while (this._errorMessages.length > errorMessages.length)
+                    this._errorMessages.pop();
+                for (i = 0; i < errorMessages.length; i++)
+                    this._errorMessages[i] = errorMessages[i];
+            }
+            else {
+                for (i = 0; i < this._errorMessages.length; i++)
+                    this._errorMessages[i] = errorMessages[i];
+                for (i = this._errorMessages.length; i < errorMessages.length; i++)
+                    this._errorMessages.push(errorMessages[i]);
+            }
+            if (this._infoMessages.length > infoMessages.length) {
+                while (this._infoMessages.length > infoMessages.length)
+                    this._infoMessages.pop();
+                for (i = 0; i < infoMessages.length; i++)
+                    this._infoMessages[i] = infoMessages[i];
+            }
+            else {
+                for (i = 0; i < this._infoMessages.length; i++)
+                    this._infoMessages[i] = infoMessages[i];
+                for (i = this._infoMessages.length; i < infoMessages.length; i++)
+                    this._infoMessages.push(infoMessages[i]);
+            }
+            this._isValid = isValid;
+        };
+        vpProto.set = function (name, portionMarking) {
+            this._name.sourceValue = name;
+            this._portionMarking.sourceValue = portionMarking;
+        };
+        vpProto.setFromGr = function (gr) { this.set(gr.getValue('name'), gr.getValue('portion_marking')); };
+        vpProto.applyGrIfValid = function (gr) {
+            if (!this._isValid || (this.name.normalizedValue == gr.getValue('name') && this.portionMarking.normalizedValue == gr.getValue('portion_marking')))
+                return false;
+            gr.setValue('name', this.name.normalizedValue);
+            gr.setValue('portion_marking', this.portionMarking.normalizedValue);
+            return true;
+        };
+        ClassificationValidator.compliantClassifications = [
+            { name: 'UNCLASSIFIED', portion_marking: 'U' },
+            { name: 'CONFIDENTIAL', portion_marking: 'C' },
+            { name: 'RESTRICTED', portion_marking: 'R' },
+            { name: 'SECRET', portion_marking: 'S' },
+            { name: 'TOP SECRET', portion_marking: 'TS' }
+        ];
+        ClassificationValidator.byName = function () {
+            var r = {};
+            ClassificationValidator.compliantClassifications.forEach(function (a) {
+                r[a.name] = a.portion_marking;
+            });
+            return r;
+        }();
+        ClassificationValidator.byPortionMarking = function () {
+            var r = {};
+            ClassificationValidator.compliantClassifications.forEach(function (a) {
+                r[a.portion_marking] = a.name;
+            });
+            return r;
+        }();
+        vpProto.type = "ClassificationValidator";
+        ClassificationValidator.prototype = vpProto;
+    }());
+})(ClassificationValidator);
+]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2018-03-27 03:47:31</sys_created_on>
         <sys_id>7aa956d6db85130093da55d0cf96195a</sys_id>
-        <sys_mod_count>10</sys_mod_count>
+        <sys_mod_count>11</sys_mod_count>
         <sys_name>ClassificationValidator</sys_name>
         <sys_package display_value="Security Classification" source="x_44813_sec_clsif">af37049adb41130093da55d0cf9619ef</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="Security Classification">af37049adb41130093da55d0cf9619ef</sys_scope>
         <sys_update_name>sys_script_include_7aa956d6db85130093da55d0cf96195a</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2018-03-28 17:51:21</sys_updated_on>
+        <sys_updated_on>2018-04-03 23:05:46</sys_updated_on>
     </sys_script_include>
 </record_update>
